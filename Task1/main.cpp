@@ -12,10 +12,11 @@ DigitalInOut LaserPin(D11);
 BBCar car(pin5, pin6, servo_ticker);
 
 volatile int PulseRecord = 0, MinPulse = 0, MaxPulse = 0;
+int cnt = 0;
 
 void laserpin()
 {
-    ThisThread::sleep_for(20ms);
+    ThisThread::sleep_for(50ms);
     TimeCnt.reset();
     LaserPin.output();
     LaserPin = 0; wait_us(100);
@@ -32,21 +33,29 @@ void laserpin()
 
 int main()
 {
-    printf("start1\n");
+    printf("start\n");
     laserpin();
-    printf("start2\n");
     MinPulse = MaxPulse = PulseRecord;
     pc.set_baud(9600);
     printf("%d\n", MinPulse);
     ThisThread::sleep_for(1s);
     car.servo0.set_speed(10);
     car.servo1.set_speed(10);
-    while (PulseRecord - MaxPulse < 80 && PulseRecord < 13000)
+    while (PulseRecord < 13000)
     {
-        printf("%d\n", MaxPulse);
-        MaxPulse = PulseRecord;
         laserpin();
+        if (PulseRecord - MaxPulse > 30)
+        {
+            cnt++;
+            if (cnt > 10)
+                break;
+            continue;
+        }
+        MinPulse = min(PulseRecord, MinPulse);
+        MaxPulse = max(PulseRecord, MaxPulse);
+        printf("%d\n", MaxPulse);
     }
+    printf("%d, %d, %d\n", MinPulse, MaxPulse, PulseRecord);
     car.stop();
     printf("end\n");
     float w = 2 * sqrt((MaxPulse * 0.1715)*(MaxPulse * 0.1715) - (MinPulse * 0.1715)*(MinPulse * 0.1715));
